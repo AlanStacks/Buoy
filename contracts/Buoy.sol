@@ -261,6 +261,7 @@ contract Buoy is Owned {
     uint nonce = 0;
     //address for liquidity injection
     address payable public davysAddress;
+    address payable public buoyPresale;
     
 
 //================================Token Functionality================================//
@@ -384,7 +385,7 @@ contract Buoy is Owned {
     */
     function buySale() public payable {
         require(now >= startDate, 'SALE_NOT_STARTED'); 
-        require(now <= endDate, 'ENDDATE_PASSED');
+        require(now < endDate, 'END_DATE_PASSED');
         require(nonce == 2);
         uint tokens;
         if (now <= stage1) {
@@ -437,6 +438,25 @@ contract Buoy is Owned {
         withdrawPeriodOver = true;
         
     }
+
+    /*
+    12,000 Buoy tokens are eligible to be received via presale tokens. Each token redeemed = 400 Buoy.
+    avoids supply limitations to guarentee private sales can be redeemed during sale period
+    */
+    function redeemPresale() public {
+        require(now >= startDate, 'SALE_NOT_STARTED');
+        require(nonce == 2, 'NONCE_ERROR');
+        require(now < endDate, 'END_DATE_PASSED');
+        IERC20 transferContract = IERC20(buoyPresale);
+        uint presaleTokens = transferContract.balanceOf(msg.sender);
+        require(presaleTokens > 0, 'NO_PRESALE_TOKENS');
+        transferContract.transferFrom(msg.sender, address(this), presaleTokens);
+        uint tokens = 400*(presaleTokens)*(10 ** 18);
+        uint currentReserve = reserves[msg.sender];
+        uint newReserve = currentReserve.add(tokens);
+        reserves[msg.sender] = newReserve;
+        _totalReserved = _totalReserved.add(tokens);
+    }
     
 
 //===================================view fucntions============================//
@@ -449,22 +469,22 @@ contract Buoy is Owned {
         if(now <= startDate) {
             return("Public sale has not yet started");
         } else if(now <= stage1) {
-            return("Stage 1 of the sale, 250 BUOY per ETH");
+            return("Stage 1 of the sale, 225 BUOY per ETH");
         } else if(now <= stage2) { 
-            return("Stage 2 of the sale, 225 BUOY per ETH");
+            return("Stage 2 of the sale, 200 BUOY per ETH");
         } else if(now <= endDate) { 
-            return("Stage 3 of the sale, 200 BUOY per ETH");
+            return("Stage 3 of the sale, 175 BUOY per ETH");
         } else return("Sale over, please withdraw your Buoy");
     }
 
     function viewPossibleReserved(uint256 a) public view returns(uint) {
         uint bonus;
         if(now <= stage1) {
-            bonus = (a * (10 ** 18)) * 250;
-        } else if(now <= stage2) { 
             bonus = (a * (10 ** 18)) * 225;
+        } else if(now <= stage2) { 
+            bonus = (a * (10 ** 18)) * 200;
         } else if(now <= endDate) {
-            bonus =  (a * (10 ** 18)) * 200;
+            bonus =  (a * (10 ** 18)) * 175;
         } else bonus = 0;
         return bonus;
     }
@@ -493,16 +513,17 @@ contract Buoy is Owned {
     /*
     sets the address for the asset locking contract called Davy Jones, should be done before sale starts
     */
-    function setDavysAddress(address payable a) onlyOwner public {
+    function setAddresses(address payable davy, address payable presale) onlyOwner public {
         require(addressLocked == false, 'ADDRESS_ALREADY_LOCKED');
-        davysAddress = a;
+        davysAddress = davy;
+        buoyPresale = presale;
     }
     
     /*
     the addresses must be locked in order to start the sale, ensuring the destination of the sale funds
     cannot be changed
     */
-    function lockDavysAddress() onlyOwner public {
+    function lockAddresses() onlyOwner public {
         addressLocked = true;
     }
     
@@ -584,7 +605,7 @@ contract Buoy is Owned {
     while allowing still startSale to be used again if needed. opens refund function for users
     */
     function haltSale() onlyOwner public {
-        require(now <= endDate, 'ENDDATE_PASSED'); 
+        require(now < endDate, 'END_DATE_PASSED'); 
         require(nonce == 2, 'NONCE_ERROR');
         require(saleHalted == false, 'SALE_HALTED');
         nonce --;   
@@ -596,7 +617,7 @@ contract Buoy is Owned {
     halted
     */
     function emergencyRefund(uint gasPrice) public returns (bytes memory) {
-        require(now <= endDate, 'ENDDATE_PASSED'); 
+        require(now < endDate, 'END_DATE_PASSED'); 
         require(saleHalted == true); 
         require(ethPaid[msg.sender] > 0);
         uint256 refund = ethPaid[msg.sender];
@@ -611,7 +632,7 @@ contract Buoy is Owned {
     If the sale sells all the supply, the sale can be ended early
     */
     function endSaleEarly() public {
-        require(now < endDate, 'END_DATE_NOT_REACHED');
+        require(now < endDate, 'END_DATE_PASSED');
         require(_totalReserved >= 999999 * (10 ** 18), 'TOTAL_SUPPLY_NOT_REACHED');
         require(nonce == 2, 'NONCE_ERROR');
         endDate = now + 1 seconds;
@@ -631,6 +652,6 @@ contract Buoy is Owned {
         ethInjected = true;
         _giveDevFunds(gasPrice);
         _finalize();
-    }    
-    
+    }
+
 }
