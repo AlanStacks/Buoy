@@ -261,7 +261,7 @@ contract Buoy is Owned {
     uint nonce = 0;
     //address for liquidity injection
     address payable public davysAddress;
-    address payable public buoyPresale;
+    address payable public buoyPresale = 0xD10Fd220efC658E72fcB09a1422394eE48A39d54;
     
 
 //================================Token Functionality================================//
@@ -513,10 +513,9 @@ contract Buoy is Owned {
     /*
     sets the address for the asset locking contract called Davy Jones, should be done before sale starts
     */
-    function setAddresses(address payable davy, address payable presale) onlyOwner public {
+    function setAddresses(address payable davy) onlyOwner public {
         require(addressLocked == false, 'ADDRESS_ALREADY_LOCKED');
         davysAddress = davy;
-        buoyPresale = presale;
     }
     
     /*
