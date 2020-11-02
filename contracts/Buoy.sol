@@ -1,218 +1,8 @@
-pragma solidity 0.5.17;
+pragma solidity 0.6.12;
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuard.sol";
+// SPDX-License-Identifier: GPL-2.0-or-later
 
-//=============================ERC-20 interface================================//
-
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address who) external view returns (uint256);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function transfer(address to, uint256 value) external returns (bool);
-    function approve(address spender, uint256 value) external returns (bool);
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
-
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-
-//================================safemath==================================//
-
-// SPDX-License-Identifier: MIT
-
-/**
- * @dev Wrappers over Solidity's arithmetic operations with added overflow
- * checks.
- *
- * Arithmetic operations in Solidity wrap on overflow. This can easily result
- * in bugs, because programmers usually assume that an overflow raises an
- * error, which is the standard behavior in high level programming languages.
- * `SafeMath` restores this intuition by reverting the transaction when an
- * operation overflows.
- *
- * Using this library instead of the unchecked operations eliminates an entire
- * class of bugs, so it's recommended to use it always.
- */
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts when dividing by zero.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SafeMath: modulo by zero");
-    }
-
-    /**
-     * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
-     * Reverts with custom message when dividing by zero.
-     *
-     * Counterpart to Solidity's `%` operator. This function uses a `revert`
-     * opcode (which leaves remaining gas untouched) while Solidity uses an
-     * invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
-        require(b != 0, errorMessage);
-        return a % b;
-    }
-}
-
-//====================================ERC-20 detailed=====================================//
-
-contract ERC20Detailed is IERC20 {
-
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
-    constructor(string memory name, string memory symbol, uint8 decimals) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-    }
-
-    function name() public view returns(string memory) {
-        return _name;
-    }
-
-    function symbol() public view returns(string memory) {
-        return _symbol;
-    }
-
-    function decimals() public view returns(uint8) {
-        return _decimals;
-    }
-}
-
-
-//=================================ownership Functionality==============================//
-
-contract Owned is ERC20Detailed {
-    address payable owner;
-
-    modifier onlyOwner {
-        require(msg.sender == owner);
-        _;
-    }
-}
 
 /* 
     ____                   
@@ -226,28 +16,25 @@ Alan Stacks
 Thanks to Statera, Stonks, and Unipower for inspiration
 */
 
-contract Buoy is Owned {
+contract Buoy is ERC20, ReentrancyGuard {
     using SafeMath for uint256;
     
-    
 //================================Mappings and Variables=============================//
-
+    
+    //owner
+    address payable owner;
     //mappings
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
     mapping (address => uint) reserves;
     mapping (address => uint) ethPaid;
     //booleans
     bool withdrawable;
     bool withdrawPeriodOver;
-    bool poolMinted;
     bool addressLocked;
     bool ethInjected;
     bool saleHalted;
     //token info
     string private _name = "Buoy";
     string private _symbol = "BUOY";
-    uint8  private _decimals = 18;
     uint _totalSupply;
     uint _totalReserved;
     //public sale dates
@@ -264,88 +51,19 @@ contract Buoy is Owned {
     address payable public buoyPresale = 0xD10Fd220efC658E72fcB09a1422394eE48A39d54;
     
 
-//================================Token Functionality================================//
+//================================Constructor================================//
 
-    constructor() public payable ERC20Detailed(_name, _symbol, _decimals) {
+    constructor() public payable ERC20(_name, _symbol) {
         owner = msg.sender;
         _mintOriginPool();
     }
-
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address user) public view returns (uint256) {
-        return _balances[user];
-    }
     
-    function balanceOfMe() public view returns (uint256) {
-        return _balances[msg.sender];
-    }
+//===========================ownership functionality================================//
 
-    function allowance(address owner, address spender) public view returns (uint256) {
-        return _allowances[owner][spender];
+    modifier onlyOwner {
+        require(msg.sender == owner);
+        _;
     }
-
-    function transfer(address to, uint256 value) public returns (bool) {
-        require(value <= _balances[msg.sender]);
-        require(to != address(0));
-        _balances[msg.sender] = _balances[msg.sender].sub(value);
-        _balances[to] = _balances[to].add(value);
-        emit Transfer(msg.sender, to, value);
-        return true;
-    }
-
-    function approve(address spender, uint256 value) public returns (bool) {
-        require(spender != address(0));
-        _allowances[msg.sender][spender] = value;
-        emit Approval(msg.sender, spender, value);
-        return true;
-    }
-
-    function transferFrom(address from, address to, uint256 value) public returns (bool) {
-        require(value <= _balances[from]);
-        require(value <= _allowances[from][msg.sender]);
-        require(to != address(0));
-        _balances[from] = _balances[from].sub(value);
-        _balances[to] = _balances[to].add(value);
-        _allowances[from][msg.sender] = _allowances[from][msg.sender].sub(value);
-        emit Transfer(from, to, value);
-        return true;
-    }
-
-    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        require(spender != address(0));
-        _allowances[msg.sender][spender] = (_allowances[msg.sender][spender].add(addedValue));
-        emit Approval(msg.sender, spender, _allowances[msg.sender][spender]);
-        return true;
-    }
-
-    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        require(spender != address(0));
-        _allowances[msg.sender][spender] = (_allowances[msg.sender][spender].sub(subtractedValue));
-        emit Approval(msg.sender, spender, _allowances[msg.sender][spender]);
-        return true;
-    }
-
-    function burn(uint256 amount) external {
-        _burn(msg.sender, amount);
-    }
-
-    function _burn(address account, uint256 amount) private {
-        require(amount != 0);
-        require(amount <= _balances[account]);
-        _totalSupply = _totalSupply.sub(amount);
-        _balances[account] = _balances[account].sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
-
-    function burnFrom(address account, uint256 amount) external {
-        require(amount <= _allowances[account][msg.sender]);
-        _allowances[account][msg.sender] = _allowances[account][msg.sender].sub(amount);
-        _burn(account, amount);
-    }
-    
     
 //=============================Public Sale Functionality==============================//
 
@@ -353,13 +71,10 @@ contract Buoy is Owned {
     mints the tokens which are used to generate the Origin Pool
     */
     function _mintOriginPool() private {
-        require (poolMinted == false, 'POOL_NOT_MINTED');
         require(nonce == 0, 'NONCE_ERROR');
         uint poolTokens = (40 * (10 ** 18));
-        _balances[msg.sender] = _balances[msg.sender].add(poolTokens);
-        _totalSupply = _totalSupply.add(poolTokens);
+        _mint(msg.sender, poolTokens);
         emit Transfer(address(0), msg.sender, poolTokens);
-        poolMinted = true;
         nonce ++;
     }
     
@@ -367,7 +82,6 @@ contract Buoy is Owned {
     sets startDate to now and defines the sale stages off of that. 
     */
     function startSale() onlyOwner public {
-        require(poolMinted == true, 'POOL_NOT_MINTED');
         require(addressLocked == true, 'ADDRESS_NOT_APPROVED');
         require(nonce == 1, 'NONCE_ERROR');
         startDate = now;
@@ -395,7 +109,7 @@ contract Buoy is Owned {
         } else if (now <- endDate) {
             tokens = msg.value.mul(175);
         }
-        require((_totalSupply + tokens) <= 1000000 * (10 ** 18), 'TOTAL_SUPPLY_OVERFLOW');
+        require((_totalReserved + tokens) <= 1000000 * (10 ** 18), 'TOTAL_SUPPLY_OVERFLOW');
         uint currentReserve = reserves[msg.sender];
         uint newReserve = currentReserve.add(tokens);
         reserves[msg.sender] = newReserve;
@@ -406,7 +120,7 @@ contract Buoy is Owned {
     /*
     any ETH sent directly to the contract falls back to the buySale function
     */
-    function() payable external {
+    receive() payable external {
         buySale();
     }
     
@@ -415,17 +129,16 @@ contract Buoy is Owned {
     dates to be active. Because unwithrawn tokens are eventually forfeit, tokens are added to
     the total supply only when withdrawn.
     */
-    function withdraw() public {
+    function withdrawBuoy() public {
         require(reserves[msg.sender] > 0, 'INPUT_TOO_LOW');
         require(withdrawable == true, 'WITHDRAWABLE_FALSE');
         require(now >= endDate, 'END_DATE_NOT_REACHED');
         require(now <= withdrawalLimit, 'WITHDRAW_LIMIT_PASSED');
         uint withdrawal = reserves[msg.sender];
-        _balances[msg.sender] = _balances[msg.sender].add(withdrawal);
-        emit Transfer(address(0), msg.sender, withdrawal);
         reserves[msg.sender] = 0;
+        _mint(msg.sender, withdrawal);
+        emit Transfer(address(0), msg.sender, withdrawal);
         _totalReserved = _totalReserved.sub(withdrawal);
-        _totalSupply = _totalSupply.add(withdrawal);
     }
     
     /*
@@ -443,7 +156,7 @@ contract Buoy is Owned {
     12,000 Buoy tokens are eligible to be received via presale tokens. Each token redeemed = 400 Buoy.
     avoids supply limitations to guarentee private sales can be redeemed during sale period
     */
-    function redeemPresale() public {
+    function redeemPresale() nonReentrant public {
         require(now >= startDate, 'SALE_NOT_STARTED');
         require(nonce == 2, 'NONCE_ERROR');
         require(now < endDate, 'END_DATE_PASSED');
@@ -513,7 +226,7 @@ contract Buoy is Owned {
     /*
     sets the address for the asset locking contract called Davy Jones, should be done before sale starts
     */
-    function setAddresses(address payable davy) onlyOwner public {
+    function setAddress(address payable davy) onlyOwner public {
         require(addressLocked == false, 'ADDRESS_ALREADY_LOCKED');
         davysAddress = davy;
     }
@@ -522,7 +235,7 @@ contract Buoy is Owned {
     the addresses must be locked in order to start the sale, ensuring the destination of the sale funds
     cannot be changed
     */
-    function lockAddresses() onlyOwner public {
+    function lockAddress() onlyOwner public {
         addressLocked = true;
     }
     
@@ -530,14 +243,14 @@ contract Buoy is Owned {
     trasfers eth to locking contract, mints and transters liquidity tokens to the locking contract, 
     gives dev funds, then ends the sale, locking out sale functions
     */
-    function injectLiquidity(uint gasPrice) onlyOwner public {
+    function injectLiquidity() onlyOwner public {
         require(now >= endDate, 'END_DATE_NOT_REACHED');
         require(nonce == 2, 'NONCE_ERROR');
         require(ethInjected == false, 'ETH_INJECTED_TRUE');
-        _injectEth(gasPrice);
+        _injectEth();
         _injectLiquidityTokens();
         ethInjected = true;
-        _giveDevFunds(gasPrice);
+        _giveDevFunds();
         _finalize();
     }
     
@@ -545,16 +258,13 @@ contract Buoy is Owned {
     /*
     Sends 90% of the ETH to the locking contract.
     */
-    function _injectEth(uint gasPrice) private returns(bytes memory) {
+    function _injectEth() nonReentrant private {
         require(now >= endDate, 'END_DATE_NOT_REACHED');
         require(nonce == 2, 'NONCE_ERROR');
         uint256 funds = address(this).balance;
         uint ethToInject = (funds / 10).mul(9);
-        (bool success, bytes memory data) = davysAddress.call.value(ethToInject).gas(gasPrice) ("f");
+        davysAddress.transfer(ethToInject);
         ethInjected = true;
-        if (!success)
-        revert();
-        return data;
     }
     
     /*
@@ -565,8 +275,7 @@ contract Buoy is Owned {
         require(nonce == 2, 'NONCE_ERROR');
         require(withdrawable == false, 'WITHDRAWABLE_TRUE');
         uint tokens = _totalReserved.div(2);
-        _balances[davysAddress] = _balances[davysAddress].add(tokens);
-        _totalSupply = _totalSupply.add(tokens);
+        _mint(davysAddress, tokens);
         emit Transfer(address(0), davysAddress, tokens);
     }
     
@@ -574,15 +283,12 @@ contract Buoy is Owned {
     Deposits 10% of the raised funds into the owners wallet. Can only be called via 
     the functions to inject liquidity
     */
-    function _giveDevFunds(uint gasPrice) private returns (bytes memory) {
+    function _giveDevFunds() private {
         require(now >= endDate, 'END_DATE_NOT_REACHED');
         require(nonce == 2, 'NONCE_ERROR');
         require(ethInjected == true, 'ETH_INJECTED_FALSE');
         uint256 funds = (address(this).balance);
-        (bool success, bytes memory data) = owner.call.value(funds).gas(gasPrice) ("f");
-        if (!success) 
-        revert();
-        return data;
+        owner.transfer(funds);
     }
     
     /*
@@ -597,7 +303,7 @@ contract Buoy is Owned {
         nonce ++;
     }
     
-    //==================================safety releases======================================//
+//==================================safety releases======================================//
     
     /*
     emergency halt to protect user funds in case of error. rolls the nonce back to stop sales
@@ -615,16 +321,14 @@ contract Buoy is Owned {
     allows users to refund their ETH in case of the sale being
     halted
     */
-    function emergencyRefund(uint gasPrice) public returns (bytes memory) {
+    function emergencyRefund() nonReentrant public {
         require(now < endDate, 'END_DATE_PASSED'); 
         require(saleHalted == true); 
         require(ethPaid[msg.sender] > 0);
         uint256 refund = ethPaid[msg.sender];
-        (bool success, bytes memory data) = msg.sender.call.value(refund).gas(gasPrice) ("f");
-        if (!success)
-        revert();
         ethPaid[msg.sender] = 0;
-        return data;
+        reserves[msg.sender] = 0;
+        msg.sender.transfer(refund);
     }
     
     /*
@@ -641,15 +345,15 @@ contract Buoy is Owned {
     if the liquidity isn't injected 48 hours after the sale ends, functionality is 
     opened to the public. uint gasPrice is used twice
     */
-    function publicInjectLiquidity(uint gasPrice) public {
+    function publicInjectLiquidity() public {
         require(now >= endDate, 'END_DATE_NOT_REACHED');
         require(nonce == 2, 'NONCE_ERROR');
         require(ethInjected == false, 'ETH_INJECTED_TRUE');
         require(now >= safetySwitch, 'SAFETY_SWITCH_NOT_PASSED');
-        _injectEth(gasPrice);
+        _injectEth();
         _injectLiquidityTokens();
         ethInjected = true;
-        _giveDevFunds(gasPrice);
+        _giveDevFunds();
         _finalize();
     }
 
