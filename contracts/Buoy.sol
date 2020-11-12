@@ -35,7 +35,6 @@ contract Buoy is ERC20, ReentrancyGuard {
     //token info
     string private _name = "Buoy";
     string private _symbol = "BUOY";
-    uint _totalSupply;
     uint _totalReserved;
     //public sale dates
     uint startDate;

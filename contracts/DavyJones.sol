@@ -126,7 +126,9 @@ contract DavyJones is ReentrancyGuard {
     function _approve(address x) private {
         IERC20 approvalContract = IERC20(x);
         approvalContract.approve(poolAddress, approvalAmount);
-        approvalContract.approve(uniswapRouter, approvalAmount);
+        if (x != buoyAddress) {
+            approvalContract.approve(uniswapRouter, approvalAmount);
+        }
     }
     
     //manually deposits tokens for the number of BPT inputed, has a corroposonding public safety function
