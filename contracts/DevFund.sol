@@ -21,12 +21,16 @@ contract DevFund {
         _;
     }
     
+    //set with the address of the uniswap liquidity token
     function setAddress(address a) onlyOwner public {
         require(addressLocked == false, 'DEPOSIT_CONFIRMED');
         uniswapTokens = a;
     }
     
-    //Locks the address
+    //Locks the address 
+    //takes balance of tokens, makes sure it's not 0, and splits that value into a share at the rate of 1/8.
+    //assigns the time of confirmation to timeStarted
+    //sets the next withdrawl 92 days from the confirmation
     function confirmDeposit() onlyOwner public {
         require(uniswapTokens != address(0), 'ADDRESS_NOT_SET');
         require(addressLocked == false, 'DEPOSIT_CONFIRMED');
@@ -39,6 +43,9 @@ contract DevFund {
         withdrawCheck = timeStarted + quarter;
     }
 
+    //requires it to be past the current withdral date
+    //withdraws 1/8th of the liquidity tokens
+    //sets the next withdral date 92 days past the last withdrawl date
     function withdrawShare() onlyOwner public {
         require(addressLocked == true, 'DEPOSIT_NOT_CONFIRMED');
         require(now > withdrawCheck);
